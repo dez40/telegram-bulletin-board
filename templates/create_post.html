@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="create-post">
+    <div class="back-button">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+
+    <h2>📝 Новое объявление</h2>
+
+    <div id="userAlert" class="alert alert-warning" style="display: none;">
+        ❗ Пожалуйста, откройте приложение через Telegram для создания объявлений
+    </div>
+
+    <form id="postForm">
+        <div class="form-group">
+            <label for="title">Заголовок *</label>
+            <input type="text" id="title" name="title" required maxlength="200" placeholder="Краткое описание">
+        </div>
+
+        <div class="form-group">
+            <label for="category">Категория *</label>
+            <select id="category" name="category" required>
+                <option value="">Выберите категорию</option>
+                {% for value, label in categories %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="content">Описание *</label>
+            <textarea id="content" name="content" required rows="5" placeholder="Подробное описание объявления"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="price">Цена</label>
+            <input type="text" id="price" name="price" placeholder="Например: 1000 руб., Бесплатно, Договорная">
+        </div>
+
+        <div class="form-group">
+            <label for="contact_info">Контактная информация *</label>
+            <input type="text" id="contact_info" name="contact_info" required placeholder="Телеграм @username, телефон, или другая контактная информация">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Опубликовать</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('postForm');
+    const userAlert = document.getElementById('userAlert');
+
+    // Проверяем наличие данных пользователя
+    const userData = JSON.parse(localStorage.getItem('telegram_user') || '{}');
+    if (!userData.id) {
+        userAlert.style.display = 'block';
+        form.style.opacity = '0.5';
+        form.querySelectorAll('input, select, textarea, button').forEach(element => {
+            element.disabled = true;
+        });
+        return;
+    }
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Публикуем...';
+
+        try {
+            const formData = new FormData(this);
+            const userData = JSON.parse(localStorage.getItem('telegram_user') || '{}');
+
+            const response = await fetch('/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: formData.get('title'),
+                    category: formData.get('category'),
+                    content: formData.get('content'),
+                    price: formData.get('price'),
+                    contact_info: formData.get('contact_info'),
+                    user_data: userData
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                if (window.showTelegramNotification) {
+                    window.showTelegramNotification(result.message, 'info');
+                } else {
+                    alert(result.message);
+                }
+                setTimeout(() => {
+                    window.location.href = '/post/' + result.post_id;
+                }, 1000);
+            } else {
+                const errorMsg = result.error || 'Неизвестная ошибка';
+                if (window.showTelegramNotification) {
+                    window.showTelegramNotification(errorMsg, 'error');
+                } else {
+                    alert('Ошибка при публикации: ' + errorMsg);
+                }
+            }
+        } catch (error) {
+            const errorMsg = 'Ошибка сети: ' + error.message;
+            if (window.showTelegramNotification) {
+                window.showTelegramNotification(errorMsg, 'error');
+            } else {
+                alert(errorMsg);
+            }
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    });
+});
+</script>
+
+<style>
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+</style>
+{% endblock %}

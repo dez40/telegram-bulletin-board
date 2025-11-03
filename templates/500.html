@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-content">
+        <h1>🚨 500 - Ошибка сервера</h1>
+        <p>Произошла внутренняя ошибка сервера. Пожалуйста, попробуйте позже.</p>
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+            <a href="javascript:location.reload()" class="btn btn-secondary">Обновить страницу</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

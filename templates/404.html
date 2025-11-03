@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-content">
+        <h1>❌ 404 - Страница не найдена</h1>
+        <p>Запрашиваемая страница не существует.</p>
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+            <a href="{{ url_for('posts') }}" class="btn btn-secondary">Все объявления</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

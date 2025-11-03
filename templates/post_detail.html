@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="post-detail">
+    <div class="back-button">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">← На главную</a>
+        <a href="{{ url_for('posts') }}" class="btn btn-secondary">← К списку</a>
+    </div>
+
+    <!-- ДОБАВЛЕН ОТЛАДОЧНЫЙ БЛОК -->
+    <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px;">
+        <small>Отладка:
+            Автор ID: {{ post.author.id if post.author else 'Нет автора' }},
+            Рейтинг: {{ post.author.average_rating if post.author else 0 }},
+            Отзывы: {{ post.author.reviews_count if post.author else 0 }}
+        </small>
+    </div>
+
+    <article class="post-full">
+        <h1>{{ post.title }}</h1>
+
+        <div class="post-meta">
+            <span>📍 {{ post.category }}</span>
+            <span>📅 {{ post.created_at.strftime('%d.%m.%Y в %H:%M') }}</span>
+            {% if post.price %}<span>💰 {{ post.price }}</span>{% endif %}
+        </div>
+
+        <div class="post-content">
+            <p>{{ post.content }}</p>
+        </div>
+
+        {% if post.contact_info %}
+        <div class="contact-info">
+            <h3>📞 Контакты:</h3>
+            <p>{{ post.contact_info }}</p>
+        </div>
+        {% endif %}
+
+        <div class="post-author">
+            <div class="author-info">
+                <strong>Автор: {{ post.author.first_name if post.author else 'Аноним' }}</strong>
+                {% if post.author %}
+                    {% set user_rating = post.author.average_rating %}
+                    {% set user_reviews_count = post.author.reviews_count %}
+                    {% if user_reviews_count > 0 %}
+                    <div class="author-rating">
+                        <span class="rating-stars">
+                            {% for i in range(1, 6) %}
+                                {% if i <= user_rating %}
+                                    ⭐
+                                {% else %}
+                                    ☆
+                                {% endif %}
+                            {% endfor %}
+                        </span>
+                        <span class="rating-text">
+                            {{ "%.1f"|format(user_rating) }} ({{ user_reviews_count }}
+                            {% if user_reviews_count == 1 %}отзыв{% elif user_reviews_count in [2,3,4] %}отзыва{% else %}отзывов{% endif %})
+                        </span>
+                    </div>
+                    {% else %}
+                    <div class="no-reviews">Нет отзывов</div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </article>
+
+    <!-- Блок отзывов -->
+    <div class="reviews-section">
+        <h3>📝 Отзывы ({{ reviews|length }})</h3>
+
+        {% if can_review %}
+        <div class="add-review-form">
+            <h4>Оставить отзыв</h4>
+            <form id="reviewForm">
+                <input type="hidden" name="post_id" value="{{ post.id }}">
+
+                <div class="rating-input">
+                    <label>Оценка *</label>
+                    <div class="stars">
+                        {% for i in range(5, 0, -1) %}
+                        <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" required>
+                        <label for="star{{ i }}">⭐</label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="comment">Комментарий (необязательно):</label>
+                    <textarea id="comment" name="comment" rows="3" placeholder="Расскажите о вашем опыте..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Отправить отзыв</button>
+            </form>
+        </div>
+        {% elif not user_data %}
+        <div class="alert alert-warning">
+            <p>⚠️ Чтобы оставить отзыв, откройте приложение через Telegram</p>
+        </div>
+        {% endif %}
+
+        <div class="reviews-list">
+            {% for review in reviews %}
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="reviewer">
+                        <strong>{{ review.buyer.first_name if review.buyer else 'Пользователь' }}</strong>
+                        {% if review.buyer and review.buyer.username %}
+                        <span>@{{ review.buyer.username }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="review-meta">
+                        <span class="review-stars">
+                            {% for i in range(1, 6) %}
+                                {% if i <= review.rating %}
+                                    ⭐
+                                {% else %}
+                                    ☆
+                                {% endif %}
+                            {% endfor %}
+                        </span>
+                        <span class="review-date">{{ review.created_at.strftime('%d.%m.%Y') }}</span>
+                    </div>
+                </div>
+                {% if review.comment %}
+                <div class="review-comment">
+                    <p>{{ review.comment }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="no-posts">
+                <p>Пока нет отзывов. Будьте первым!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="post-actions">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+        <a href="{{ url_for('posts') }}" class="btn btn-secondary">Все объявления</a>
+        <a href="{{ url_for('create_post') }}" class="btn btn-primary">Добавить своё</a>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewForm = document.getElementById('reviewForm');
+
+    if (reviewForm) {
+        // Обработка выбора звезд
+        const stars = reviewForm.querySelectorAll('input[name="rating"]');
+        stars.forEach(star => {
+            star.addEventListener('change', function() {
+                // Обновляем визуальное отображение выбранных звезд
+                const rating = parseInt(this.value);
+                stars.forEach((s, index) => {
+                    const label = s.nextElementSibling;
+                    if (parseInt(s.value) <= rating) {
+                        label.style.color = '#ffc107';
+                    } else {
+                        label.style.color = '#ccc';
+                    }
+                });
+            });
+        });
+
+        reviewForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const rating = formData.get('rating');
+            const comment = formData.get('comment');
+            const postId = formData.get('post_id');
+
+            if (!rating) {
+                alert('Пожалуйста, поставьте оценку');
+                return;
+            }
+
+            const userData = JSON.parse(localStorage.getItem('telegram_user') || '{}');
+
+            if (!userData.id) {
+                alert('Для оставления отзыва необходимо авторизоваться через Telegram');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Отправка...';
+            submitBtn.classList.add('loading');
+
+            try {
+                const response = await fetch('/api/review', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        rating: parseInt(rating),
+                        comment: comment,
+                        user_data: userData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (window.showTelegramNotification) {
+                        window.showTelegramNotification('Отзыв успешно добавлен!', 'info');
+                    } else {
+                        alert('Отзыв успешно добавлен!');
+                    }
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    const errorMsg = result.error || 'Неизвестная ошибка';
+                    if (window.showTelegramNotification) {
+                        window.showTelegramNotification('Ошибка: ' + errorMsg, 'error');
+                    } else {
+                        alert('Ошибка: ' + errorMsg);
+                    }
+                }
+            } catch (error) {
+                console.error('Review submission error:', error);
+                const errorMsg = 'Ошибка сети: ' + error.message;
+                if (window.showTelegramNotification) {
+                    window.showTelegramNotification(errorMsg, 'error');
+                } else {
+                    alert(errorMsg);
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                submitBtn.classList.remove('loading');
+            }
+        });
+
+        // Инициализация цвета звезд по умолчанию
+        const starLabels = reviewForm.querySelectorAll('input[name="rating"] + label');
+        starLabels.forEach(star => {
+            star.style.color = '#ccc';
+        });
+    }
+});
+</script>
+
+<style>
+/* Дополнительные стили только для элементов рейтинга, которых нет в основном style.css */
+
+.author-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.rating-stars {
+    font-size: 1.2rem;
+}
+
+.rating-text {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.reviews-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.add-review-form {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.add-review-form h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.rating-input {
+    margin-bottom: 1rem;
+}
+
+.rating-input label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.rating-input .stars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 0.3rem;
+}
+
+.rating-input input[type="radio"] {
+    display: none;
+}
+
+.rating-input label[for^="star"] {
+    cursor: pointer;
+    font-size: 2rem;
+    transition: color 0.2s;
+    color: #ccc;
+}
+
+.rating-input input[type="radio"]:checked ~ label[for^="star"],
+.rating-input label[for^="star"]:hover,
+.rating-input label[for^="star"]:hover ~ label[for^="star"] {
+    color: #ffc107;
+}
+
+.review-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.reviewer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.reviewer strong {
+    color: #333;
+}
+
+.reviewer span {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.review-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+.review-stars {
+    font-size: 1.1rem;
+}
+
+.review-date {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.review-comment {
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid #f0f0f0;
+    line-height: 1.5;
+    color: #555;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 600px) {
+    .review-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .review-meta {
+        align-items: flex-start;
+        margin-top: 0.5rem;
+    }
+
+    .rating-input .stars {
+        justify-content: space-between;
+    }
+
+    .rating-input label[for^="star"] {
+        font-size: 1.8rem;
+    }
+}
+</style>
+{% endblock %}

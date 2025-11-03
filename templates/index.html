@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+{{ telegram_init|safe }}
+
+<div class="header">
+    <h1>🎯 Поселковая доска</h1>
+    <p>Находите услуги, делитесь вещами, общайтесь с соседями</p>
+</div>
+
+<div class="quick-actions">
+    <a href="{{ url_for('create_post') }}" class="btn btn-primary">📝 Добавить объявление</a>
+    <a href="{{ url_for('posts') }}" class="btn btn-secondary">📋 Все объявления</a>
+</div>
+
+<div class="categories">
+    {% for value, label in categories %}
+        <a href="{{ url_for('posts', category=value) }}" class="category-btn">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<div class="recent-posts">
+    <h2>🔥 Свежие объявления</h2>
+    {% for post in posts %}
+        <div class="post-card">
+            <h3>{{ post.title }}</h3>
+            <p class="post-meta">
+                📍 {{ post.category }} • {{ post.created_at.strftime('%d.%m.%Y') }}
+                {% if post.price %} • 💰 {{ post.price }}{% endif %}
+            </p>
+            <p>{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</p>
+            <a href="{{ url_for('post_detail', post_id=post.id) }}">Подробнее</a>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
