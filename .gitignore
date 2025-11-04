@@ -10,3 +10,4 @@ venv/
 instance/
 .DS_Store
 *.sqlite
+.idea/
