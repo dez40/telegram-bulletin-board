@@ -147,12 +147,21 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const reviewForm = document.getElementById('reviewForm');
+    console.log('Review form found:', !!reviewForm); // Debug
 
     if (reviewForm) {
         // Обработка выбора звезд
         const stars = reviewForm.querySelectorAll('input[name="rating"]');
+        const starLabels = reviewForm.querySelectorAll('input[name="rating"] + label');
+
+        // Инициализация цвета звезд по умолчанию
+        starLabels.forEach(star => {
+            star.style.color = '#ccc';
+        });
+
         stars.forEach(star => {
             star.addEventListener('change', function() {
+                console.log('Star selected:', this.value); // Debug
                 // Обновляем визуальное отображение выбранных звезд
                 const rating = parseInt(this.value);
                 stars.forEach((s, index) => {
@@ -168,21 +177,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
         reviewForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+            console.log('Form submitted'); // Debug
 
             const formData = new FormData(this);
             const rating = formData.get('rating');
             const comment = formData.get('comment');
             const postId = formData.get('post_id');
 
+            console.log('Form data:', { rating, comment, postId }); // Debug
+
             if (!rating) {
                 alert('Пожалуйста, поставьте оценку');
                 return;
             }
 
+            // Получаем данные пользователя из localStorage
             const userData = JSON.parse(localStorage.getItem('telegram_user') || '{}');
+            console.log('User data from localStorage:', userData); // Debug
 
             if (!userData.id) {
-                alert('Для оставления отзыва необходимо авторизоваться через Telegram');
+                alert('Для оставления отзыва необходимо авторизоваться через Telegram. Пожалуйста, откройте приложение через Telegram бота.');
                 return;
             }
 
@@ -194,6 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.classList.add('loading');
 
             try {
+                console.log('Sending review request...'); // Debug
+
                 const response = await fetch('/api/review', {
                     method: 'POST',
                     headers: {
@@ -208,27 +224,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 const result = await response.json();
+                console.log('Server response:', result); // Debug
 
                 if (result.success) {
+                    const message = result.needs_moderation
+                        ? 'Отзыв отправлен на модерацию! Он появится после проверки администратором.'
+                        : 'Отзыв успешно добавлен!';
+
                     if (window.showTelegramNotification) {
-                        window.showTelegramNotification('Отзыв успешно добавлен!', 'info');
+                        window.showTelegramNotification(message, 'info');
                     } else {
-                        alert('Отзыв успешно добавлен!');
+                        alert(message);
                     }
+
                     setTimeout(() => {
                         location.reload();
-                    }, 1500);
+                    }, 2000);
                 } else {
-                    const errorMsg = result.error || 'Неизвестная ошибка';
-                    if (window.showTelegramNotification) {
-                        window.showTelegramNotification('Ошибка: ' + errorMsg, 'error');
-                    } else {
-                        alert('Ошибка: ' + errorMsg);
-                    }
+                    throw new Error(result.error);
                 }
             } catch (error) {
                 console.error('Review submission error:', error);
-                const errorMsg = 'Ошибка сети: ' + error.message;
+                const errorMsg = 'Ошибка при отправке отзыва: ' + error.message;
+
                 if (window.showTelegramNotification) {
                     window.showTelegramNotification(errorMsg, 'error');
                 } else {
@@ -240,13 +258,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.classList.remove('loading');
             }
         });
-
-        // Инициализация цвета звезд по умолчанию
-        const starLabels = reviewForm.querySelectorAll('input[name="rating"] + label');
-        starLabels.forEach(star => {
-            star.style.color = '#ccc';
-        });
+    } else {
+        console.log('No review form found on this page'); // Debug
     }
+
+    // Debug: проверяем данные пользователя
+    const userData = JSON.parse(localStorage.getItem('telegram_user') || '{}');
+    console.log('Current user data:', userData);
 });
 </script>
 

@@ -308,21 +308,29 @@ def manage_post(post_id):
 
 
 # СИСТЕМА ОТЗЫВОВ И МОДЕРАЦИИ
-@app.route('/api/review', methods=['POST'])
-def add_review():
-    """Добавление отзыва к объявлению (с модерацией)"""
-    try:
-        data = request.json
-        post_id = data.get('post_id')
-        rating = data.get('rating')
-        comment = data.get('comment', '').strip()
-        user_data = data.get('user_data')
+        @app.route('/api/review', methods=['POST'])
+        def add_review():
+            """Добавление отзыва к объявлению (с модерацией)"""
+            try:
+                data = request.json
+                print(f"=== REVIEW SUBMISSION ===")  # Debug
+                print(f"Received data: {data}")  # Debug
 
-        if not user_data or not user_data.get('id'):
-            return jsonify({
-                'success': False,
-                'error': 'Необходима авторизация через Telegram'
-            })
+                post_id = data.get('post_id')
+                rating = data.get('rating')
+                comment = data.get('comment', '').strip()
+                user_data = data.get('user_data')
+
+                print(f"User data: {user_data}")  # Debug
+                print(f"Post ID: {post_id}")  # Debug
+                print(f"Rating: {rating}")  # Debug
+
+                if not user_data or not user_data.get('id'):
+                    print("ERROR: No user data")  # Debug
+                    return jsonify({
+                        'success': False,
+                        'error': 'Необходима авторизация через Telegram'
+                    })
 
         # Проверяем обязательные поля
         if not all([post_id, rating]):
