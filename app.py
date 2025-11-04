@@ -6,12 +6,13 @@ from datetime import datetime
 import requests
 import json
 import uuid
+import click  # ДОБАВИТЬ ЭТОТ ИМПОРТ
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
-migrate = Migrate(app, db)  # Инициализация миграций
+migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
