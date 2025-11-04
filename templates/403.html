@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-content">
+        <h1>🚫 403 - Доступ запрещен</h1>
+        <p>У вас недостаточно прав для просмотра этой страницы.</p>
+        <p class="error-details">Эта страница доступна только администраторам системы.</p>
+
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">🏠 На главную</a>
+            <a href="{{ url_for('posts') }}" class="btn btn-secondary">📋 Все объявления</a>
+            {% if current_user and current_user.is_admin %}
+            <a href="{{ url_for('admin_reviews') }}" class="btn btn-success">⚙️ Панель модерации</a>
+            {% endif %}
+        </div>
+
+        <div class="error-help">
+            <h3>Что делать?</h3>
+            <ul>
+                <li>Если вы администратор, убедитесь что вошли в систему</li>
+                <li>Обратитесь к главному администратору для получения прав</li>
+                <li>Или продолжите работу с основными функциями приложения</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh;
+    text-align: center;
+    padding: 2rem;
+}
+
+.error-content h1 {
+    color: #dc3545;
+    margin-bottom: 1.5rem;
+    font-size: 2.5rem;
+}
+
+.error-content p {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+.error-details {
+    font-size: 1rem !important;
+    color: #888 !important;
+    font-style: italic;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 2.5rem 0;
+    flex-wrap: wrap;
+}
+
+.error-actions .btn {
+    min-width: 160px;
+}
+
+.error-help {
+    max-width: 500px;
+    margin: 2rem auto 0;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    text-align: left;
+}
+
+.error-help h3 {
+    color: #333;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.error-help ul {
+    color: #666;
+    line-height: 1.6;
+    padding-left: 1.2rem;
+}
+
+.error-help li {
+    margin-bottom: 0.5rem;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+    border: none;
+}
+
+.btn-success:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .error-content h1 {
+        font-size: 2rem;
+    }
+
+    .error-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .error-actions .btn {
+        width: 200px;
+    }
+
+    .error-help {
+        margin: 1rem;
+    }
+}
+</style>
+{% endblock %}

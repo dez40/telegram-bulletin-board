@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="user-profile">
+    <div class="back-button">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">← На главную</a>
+    </div>
+
+    <div class="profile-header">
+        <div class="avatar-section">
+            <div class="avatar">👤</div>
+            <h1>{{ user.first_name }} {{ user.last_name or '' }}</h1>
+            {% if user.username %}
+            <p class="username">@{{ user.username }}</p>
+            {% endif %}
+        </div>
+
+        <div class="rating-section">
+            <div class="rating-display">
+                <div class="stars-large">
+                    {% for i in range(1, 6) %}
+                        {% if i <= user.average_rating %}⭐{% else %}☆{% endif %}
+                    {% endfor %}
+                </div>
+                <div class="rating-text">
+                    <strong>{{ "%.1f"|format(user.average_rating) }}</strong>
+                    <span>из 5 звезд</span>
+                </div>
+            </div>
+            <p class="reviews-count">{{ user.reviews_count }}
+                {% if user.reviews_count == 1 %}отзыв{% elif user.reviews_count in [2,3,4] %}отзыва{% else %}отзывов{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="profile-stats">
+        <div class="stat-card">
+            <h3>{{ posts_count }}</h3>
+            <p>Объявлений</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ user.reviews_count }}</h3>
+            <p>Отзывов</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ "%.1f"|format(user.average_rating) }}</h3>
+            <p>Рейтинг</p>
+        </div>
+    </div>
+
+    <div class="profile-tabs">
+        <button class="tab-button active" onclick="openTab('posts')">📋 Объявления</button>
+        <button class="tab-button" onclick="openTab('reviews')">⭐ Отзывы</button>
+    </div>
+
+    <div id="posts" class="tab-content active">
+        <h3>Активные объявления</h3>
+        <div class="posts-list">
+            {% for post in user_posts %}
+                {% if post.is_active %}
+                <div class="post-card">
+                    <h4><a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a></h4>
+                    <p class="post-meta">
+                        📍 {{ post.category }} • {{ post.created_at.strftime('%d.%m.%Y') }}
+                        {% if post.price %} • 💰 {{ post.price }}{% endif %}
+                    </p>
+                    <p>{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</p>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <p>Пока нет активных объявлений</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="reviews" class="tab-content">
+        <h3>Отзывы от других пользователей</h3>
+        <div class="reviews-list">
+            {% for review in user_reviews %}
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="reviewer">
+                        <strong>{{ review.buyer.first_name }}</strong>
+                        {% if review.buyer.username %}
+                        <span>@{{ review.buyer.username }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="review-meta">
+                        <span class="review-stars">
+                            {% for i in range(1, 6) %}
+                                {% if i <= review.rating %}⭐{% else %}☆{% endif %}
+                            {% endfor %}
+                        </span>
+                        <span class="review-date">{{ review.created_at.strftime('%d.%m.%Y') }}</span>
+                    </div>
+                </div>
+                {% if review.comment %}
+                <div class="review-comment">
+                    <p>{{ review.comment }}</p>
+                </div>
+                {% endif %}
+                <div class="review-post">
+                    К объявлению: <a href="{{ url_for('post_detail', post_id=review.post.id) }}">{{ review.post.title }}</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>Пока нет отзывов</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function openTab(tabName) {
+    // Скрыть все табы
+    const tabContents = document.getElementsByClassName('tab-content');
+    for (let i = 0; i < tabContents.length; i++) {
+        tabContents[i].classList.remove('active');
+    }
+
+    // Убрать активный класс со всех кнопок
+    const tabButtons = document.getElementsByClassName('tab-button');
+    for (let i = 0; i < tabButtons.length; i++) {
+        tabButtons[i].classList.remove('active');
+    }
+
+    // Показать выбранный таб и активировать кнопку
+    document.getElementById(tabName).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+</script>
+
+<style>
+.user-profile {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.avatar {
+    font-size: 3rem;
+    width: 80px;
+    height: 80px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-section h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.username {
+    margin: 0.3rem 0 0 0;
+    opacity: 0.9;
+}
+
+.rating-section {
+    text-align: center;
+}
+
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.stars-large {
+    font-size: 1.5rem;
+}
+
+.rating-text strong {
+    font-size: 2rem;
+    display: block;
+}
+
+.rating-text span {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.reviews-count {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
+}
+
+.stat-card h3 {
+    font-size: 2rem;
+    margin: 0;
+    color: #667eea;
+}
+
+.stat-card p {
+    margin: 0.5rem 0 0 0;
+    color: #666;
+    font-weight: 500;
+}
+
+.profile-tabs {
+    display: flex;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.tab-button:hover {
+    color: #667eea;
+    background: #f8f9fa;
+}
+
+.tab-button.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    font-weight: bold;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.posts-list,
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.post-card,
+.review-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.post-card h4 {
+    margin: 0 0 0.5rem 0;
+}
+
+.post-card h4 a {
+    color: #333;
+    text-decoration: none;
+}
+
+.post-card h4 a:hover {
+    color: #667eea;
+}
+
+.post-meta {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.reviewer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.reviewer strong {
+    color: #333;
+}
+
+.reviewer span {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.review-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+}
+
+.review-stars {
+    font-size: 1.1rem;
+    color: #ffc107;
+}
+
+.review-date {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.review-comment {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+    line-height: 1.5;
+}
+
+.review-post {
+    font-size: 0.9rem;
+    color: #666;
+    border-top: 1px solid #e9ecef;
+    padding-top: 1rem;
+}
+
+.review-post a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.review-post a:hover {
+    text-decoration: underline;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 2px dashed #dee2e6;
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem;
+    }
+
+    .avatar-section {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .rating-display {
+        justify-content: center;
+    }
+
+    .profile-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-tabs {
+        flex-direction: column;
+    }
+
+    .tab-button {
+        text-align: left;
+    }
+
+    .review-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .review-meta {
+        align-items: flex-start;
+    }
+}
+</style>
+{% endblock %}

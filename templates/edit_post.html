@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="edit-post">
+    <div class="back-button">
+        <a href="{{ url_for('my_posts') }}" class="btn btn-secondary">← Мои объявления</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">🏠 На главную</a>
+    </div>
+
+    <h2>✏️ Редактировать объявление</h2>
+
+    <div id="userAlert" class="alert alert-warning" style="display: none;">
+        ❗ Пожалуйста, откройте приложение через Telegram для редактирования объявлений
+    </div>
+
+    <div id="postNotFound" class="alert alert-danger" style="display: none;">
+        ❌ Объявление не найдено или у вас нет прав для его редактирования
+    </div>
+
+    <form id="editPostForm" style="display: none;">
+        <input type="hidden" id="postId" value="{{ post_id }}">
+
+        <div class="form-group">
+            <label for="title">Заголовок *</label>
+            <input type="text" id="title" name="title" required maxlength="200" placeholder="Краткое описание">
+            <div class="char-counter"><span id="titleCount">0</span>/200</div>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Категория *</label>
+            <select id="category" name="category" required>
+                <option value="">Выберите категорию</option>
+                {% for value, label in categories %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="content">Описание *</label>
+            <textarea id="content" name="content" required rows="6" placeholder="Подробное описание объявления"></textarea>
+            <div class="char-counter"><span id="contentCount">0</span>/2000</div>
+        </div>
+
+        <div class="form-group">
+            <label for="price">Цена</label>
+            <input type="text" id="price" name="price" placeholder="Например: 1000 руб., Бесплатно, Договорная">
+            <div class="help-text">Оставьте пустым, если цена не указана</div>
+        </div>
+
+        <div class="form-group">
+            <label for="contact_info">Контактная информация *</label>
+            <input type="text" id="contact_info" name="contact_info" required placeholder="Телеграм @username, телефон, или другая контактная информация">
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" id="is_active" name="is_active" checked>
+                <span class="checkmark"></span>
+                ✅ Активное объявление (отображается в общем списке)
+            </label>
+            <div class="help-text">Снимите галочку чтобы временно скрыть объявление</div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 Сохранить изменения</button>
+            <button type="button" id="deleteBtn" class="btn btn-danger">🗑️ Удалить объявление</button>
+            <a href="{{ url_for('my_posts') }}" class="btn btn-secondary">❌ Отмена</a>
+        </div>
+    </form>
+
+    <div id="loadingSpinner" class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Загрузка данных объявления...</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editPostForm');
+    const userAlert = document.getElementById('userAlert');
+    const postNotFound = document.getElementById('postNotFound');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const postId = document.getElementById('postId').value;
+
+    // Проверяем наличие данных пользователя
+    const userData = JSON.parse(localStorage.getItem('telegram_user') || '{}');
+    if (!userData.id) {
+        userAlert.style.display = 'block';
+        loadingSpinner.style.display = 'none';
+        return;
+    }
+
+    // Загружаем данные объявления
+    loadPostData(postId, userData);
+
+    // Счетчики символов
+    const titleInput = document.getElementById('title');
+    const contentInput = document.getElementById('content');
+    const titleCount = document.getElementById('titleCount');
+    const contentCount = document.getElementById('contentCount');
+
+    titleInput.addEventListener('input', function() {
+        titleCount.textContent = this.value.length;
+    });
+
+    contentInput.addEventListener('input', function() {
+        contentCount.textContent = this.value.length;
+    });
+
+    // Обработка отправки формы
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await updatePost(postId, userData);
+    });
+
+    // Обработка удаления
+    deleteBtn.addEventListener('click', function() {
+        if (confirm('Вы уверены, что хотите удалить это объявление? Это действие нельзя отменить.')) {
+            deletePost(postId, userData);
+        }
+    });
+});
+
+async function loadPostData(postId, userData) {
+    try {
+        const response = await fetch(`/api/post/${postId}?user_data=${encodeURIComponent(JSON.stringify(userData))}`);
+        const result = await response.json();
+
+        if (result.success) {
+            const post = result.post;
+
+            // Заполняем форму данными
+            document.getElementById('title').value = post.title;
+            document.getElementById('category').value = post.category;
+            document.getElementById('content').value = post.content;
+            document.getElementById('price').value = post.price || '';
+            document.getElementById('contact_info').value = post.contact_info;
+            document.getElementById('is_active').checked = post.is_active;
+
+            // Обновляем счетчики
+            document.getElementById('titleCount').textContent = post.title.length;
+            document.getElementById('contentCount').textContent = post.content.length;
+
+            // Показываем форму
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('editPostForm').style.display = 'block';
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Error loading post:', error);
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('postNotFound').style.display = 'block';
+    }
+}
+
+async function updatePost(postId, userData) {
+    const form = document.getElementById('editPostForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Сохранение...';
+    submitBtn.classList.add('loading');
+
+    try {
+        const formData = new FormData(form);
+
+        const response = await fetch(`/api/post/${postId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: formData.get('title'),
+                category: formData.get('category'),
+                content: formData.get('content'),
+                price: formData.get('price'),
+                contact_info: formData.get('contact_info'),
+                is_active: formData.get('is_active') === 'on',
+                user_data: userData
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const message = 'Объявление успешно обновлено!';
+            if (window.showTelegramNotification) {
+                window.showTelegramNotification(message, 'info');
+            } else {
+                alert(message);
+            }
+
+            setTimeout(() => {
+                window.location.href = '/my_posts';
+            }, 1500);
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Error updating post:', error);
+        const errorMsg = 'Ошибка при обновлении: ' + error.message;
+        if (window.showTelegramNotification) {
+            window.showTelegramNotification(errorMsg, 'error');
+        } else {
+            alert(errorMsg);
+        }
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        submitBtn.classList.remove('loading');
+    }
+}
+
+async function deletePost(postId, userData) {
+    const deleteBtn = document.getElementById('deleteBtn');
+    const originalText = deleteBtn.textContent;
+
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = 'Удаление...';
+    deleteBtn.classList.add('loading');
+
+    try {
+        const response = await fetch(`/api/post/${postId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_data: userData
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const message = 'Объявление успешно удалено!';
+            if (window.showTelegramNotification) {
+                window.showTelegramNotification(message, 'info');
+            } else {
+                alert(message);
+            }
+
+            setTimeout(() => {
+                window.location.href = '/my_posts';
+            }, 1500);
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        const errorMsg = 'Ошибка при удалении: ' + error.message;
+        if (window.showTelegramNotification) {
+            window.showTelegramNotification(errorMsg, 'error');
+        } else {
+            alert(errorMsg);
+        }
+
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = originalText;
+        deleteBtn.classList.remove('loading');
+    }
+}
+</script>
+
+<style>
+.edit-post {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.back-button {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.char-counter {
+    text-align: right;
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.3rem;
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.3rem;
+    font-style: italic;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+    display: none;
+}
+
+.checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-radius: 3px;
+    margin-right: 0.5rem;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark {
+    background: #667eea;
+    border-color: #667eea;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+    content: '✓';
+    position: absolute;
+    color: white;
+    font-size: 14px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.form-actions .btn {
+    flex: 1;
+    min-width: 140px;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 3rem;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+@media (max-width: 768px) {
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+
+    .back-button {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}
