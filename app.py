@@ -4,18 +4,13 @@ from config import Config
 import requests
 import json
 
-# Инициализация базы данных
-db.init_app(app)
-
-# Создание таблиц при запуске
-@app.before_first_request
-def create_tables():
-    db.create_all()
-
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Инициализация базы данных ДОЛЖНА быть ПОСЛЕ создания app
 db.init_app(app)
 
+# Создание таблиц должно быть внутри app context
 with app.app_context():
     db.create_all()
 
@@ -462,15 +457,17 @@ def internal_error(error):
 @app.cli.command('init-db')
 def init_db_command():
     """Инициализация базы данных"""
-    db.create_all()
+    with app.app_context():
+        db.create_all()
     print('База данных инициализирована.')
 
 
 @app.cli.command('clear-posts')
 def clear_posts_command():
     """Очистка всех объявлений"""
-    Post.query.delete()
-    db.session.commit()
+    with app.app_context():
+        Post.query.delete()
+        db.session.commit()
     print('Все объявления удалены.')
 
 
