@@ -70,6 +70,7 @@ body {
     border: 2px solid #667eea;
 }
 
+<<<<<<< HEAD
 .btn-success {
     background: #28a745;
     color: white;
@@ -82,11 +83,14 @@ body {
     border: none;
 }
 
+=======
+>>>>>>> 01f83c6527f6d9f464e13a4d6610c34f9ed6def4
 .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
+<<<<<<< HEAD
 .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -99,6 +103,8 @@ body {
     min-width: auto;
 }
 
+=======
+>>>>>>> 01f83c6527f6d9f464e13a4d6610c34f9ed6def4
 /* Category Styles */
 .categories {
     display: grid;
@@ -117,6 +123,7 @@ body {
     text-align: center;
     transition: all 0.3s ease;
     font-weight: 500;
+<<<<<<< HEAD
 }
 
 .category-btn:hover,
@@ -127,6 +134,17 @@ body {
     transform: translateY(-2px);
 }
 
+=======
+}
+
+.category-btn:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+>>>>>>> 01f83c6527f6d9f464e13a4d6610c34f9ed6def4
 /* Post Styles */
 .recent-posts {
     margin-top: 30px;
@@ -179,6 +197,7 @@ body {
     color: #666;
     font-size: 0.9em;
     margin-bottom: 10px;
+<<<<<<< HEAD
 }
 
 .read-more {
@@ -214,6 +233,8 @@ body {
 .post-status.inactive {
     background: #f8d7da;
     color: #721c24;
+=======
+>>>>>>> 01f83c6527f6d9f464e13a4d6610c34f9ed6def4
 }
 
 /* Form Styles */
@@ -243,7 +264,10 @@ body {
 .form-group textarea:focus {
     outline: none;
     border-color: #667eea;
+<<<<<<< HEAD
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+=======
+>>>>>>> 01f83c6527f6d9f464e13a4d6610c34f9ed6def4
 }
 
 .form-actions {
@@ -261,6 +285,7 @@ body {
 /* Back Button */
 .back-button {
     margin-bottom: 20px;
+<<<<<<< HEAD
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
@@ -1076,6 +1101,12 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+=======
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+>>>>>>> 01f83c6527f6d9f464e13a4d6610c34f9ed6def4
     .container {
         padding: 15px;
     }
@@ -1095,6 +1126,7 @@ body {
     .form-actions {
         flex-direction: column;
     }
+<<<<<<< HEAD
 
     .error-content h1 {
         font-size: 2rem;
@@ -1202,3 +1234,6 @@ body {
         width: calc(100% - 2rem);
     }
 }
+=======
+}
+
